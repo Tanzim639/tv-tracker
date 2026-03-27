@@ -1,0 +1,147 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+
+function ShowDetails() {
+  const { id } = useParams();
+  const [show, setShow] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchShow = async () => {
+      try {
+        setLoading(true);
+        // First, get the show from your backend
+        const res = await axios.get(`http://localhost:5000/shows`);
+        const showDoc = res.data.find((s) => s._id === id);
+
+        if (!showDoc) {
+          setShow(null);
+          return;
+        }
+
+        // Then, fetch full show info from TVMaze
+        const tvmazeRes = await axios.get(
+          `https://api.tvmaze.com/shows/${showDoc.tvmazeId}`,
+        );
+
+        setShow(tvmazeRes.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchShow();
+  }, [id]);
+
+  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (!show) return <p className="text-center mt-10">Show not found</p>;
+
+  // Clean summary HTML
+  const summary =
+    show.summary?.replace(/<[^>]+>/g, "") || "No summary available";
+
+  return (
+    <div className="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 rounded-xl shadow-lg text-white">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-4 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded"
+      >
+        ← Back
+      </button>
+
+      <h1 className="text-4xl font-bold mb-4">{show.name}</h1>
+
+      {show.image && (
+        <img
+          src={show.image.medium}
+          alt={show.name}
+          className="w-full max-w-sm h-auto object-contain rounded mb-4 mx-auto"
+        />
+      )}
+
+      <p className="text-gray-300 mb-4">{summary}</p>
+
+      <div className="grid grid-cols-2 gap-4 text-gray-300 mb-4">
+        {show.genres?.length > 0 && (
+          <p>
+            <span className="font-semibold">Genres:</span>{" "}
+            {show.genres.join(", ")}
+          </p>
+        )}
+        {show.runtime && (
+          <p>
+            <span className="font-semibold">Runtime:</span> {show.runtime} min
+          </p>
+        )}
+        {show.officialSite && (
+          <p>
+            <span className="font-semibold">Official Site:</span>{" "}
+            <a
+              href={show.officialSite}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:underline"
+            >
+              Visit
+            </a>
+          </p>
+        )}
+        {show.externals?.imdb && (
+          <p>
+            <span className="font-semibold">IMDb:</span>{" "}
+            <a
+              href={`https://www.imdb.com/title/${show.externals.imdb}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:underline"
+            >
+              View
+            </a>
+          </p>
+        )}
+      </div>
+
+      {/* Episodes info from your backend (last/next) */}
+      <div className="text-gray-300 space-y-2 border-t border-gray-700 pt-4">
+        <p>
+          <span className="font-semibold">Last Episode:</span>{" "}
+          {show.lastEpisode || "N/A"}
+        </p>
+        {show.lastAirDate && (
+          <p className="text-gray-400 text-sm">
+            Airdate: {show.lastAirDate.slice(0, 10)}
+          </p>
+        )}
+        <p>
+          <span className="font-semibold">Next Episode:</span>{" "}
+          {show.nextEpisode || "None"}
+        </p>
+        {show.nextAirDate && (
+          <p className="text-gray-400 text-sm">
+            Airdate: {show.nextAirDate.slice(0, 10)}
+          </p>
+        )}
+      </div>
+
+      {/* Wikipedia link */}
+      {show.externals?.tvrage && (
+        <div className="mt-4">
+          <a
+            href={`https://en.wikipedia.org/wiki/${show.name.replace(/ /g, "_")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:underline"
+          >
+            Wikipedia Page
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ShowDetails;
