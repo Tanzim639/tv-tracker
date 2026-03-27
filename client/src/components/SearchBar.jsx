@@ -16,7 +16,9 @@ function SearchBar({ onAdd }) {
       try {
         setLoading(true);
 
-        const res = await axios.get(`http://localhost:5000/search/${query}`);
+        const res = await axios.get(
+          `https://tv-tracker-muie.onrender.com/search/${query}`,
+        );
 
         setResults(res.data);
       } catch (err) {
@@ -30,7 +32,7 @@ function SearchBar({ onAdd }) {
   }, [query]);
 
   const addShow = async (tvmazeId, name) => {
-    await axios.post("http://localhost:5000/add-show", { name });
+    await axios.post("https://tv-tracker-muie.onrender.com/add-show", { name });
 
     // 🔥 update UI instantly
     setResults((prev) =>

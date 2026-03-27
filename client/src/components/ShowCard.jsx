@@ -7,7 +7,7 @@ function ShowCard({ show, refresh }) {
   const navigate = useNavigate(); // ✅ FIXED (inside component)
 
   const deleteShow = async () => {
-    await axios.delete(`http://localhost:5000/show/${show._id}`);
+    await axios.delete(`https://tv-tracker-muie.onrender.com/show/${show._id}`);
     setShowConfirm(false);
     refresh();
   };

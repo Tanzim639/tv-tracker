@@ -10,7 +10,7 @@ function App() {
 
   const loadShows = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/shows");
+      const res = await axios.get("https://tv-tracker-muie.onrender.com/shows");
       setShows(res.data);
     } catch (err) {
       console.error(err);
@@ -20,7 +20,9 @@ function App() {
   useEffect(() => {
     loadShows();
     // Refresh all shows once on app load
-    axios.get("http://localhost:5000/refresh-shows").then(loadShows);
+    axios
+      .get("https://tv-tracker-muie.onrender.com/refresh-shows")
+      .then(loadShows);
   }, []);
 
   return (

@@ -13,7 +13,9 @@ function ShowDetails() {
       try {
         setLoading(true);
         // First, get the show from your backend
-        const res = await axios.get(`http://localhost:5000/shows`);
+        const res = await axios.get(
+          `https://tv-tracker-muie.onrender.com/shows`,
+        );
         const showDoc = res.data.find((s) => s._id === id);
 
         if (!showDoc) {
