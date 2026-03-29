@@ -16,7 +16,8 @@ function Login({ setToken }) {
 
       navigate("/");
     } catch (err) {
-      alert("Login failed");
+      console.error(err); // 🔥 full error in console
+      alert(err.response?.data?.message || "Login failed"); // shows backend message
     }
   };
 
