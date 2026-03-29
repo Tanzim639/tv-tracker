@@ -10,37 +10,43 @@ import Login from "./pages/Login";
 function App() {
   const [shows, setShows] = useState([]);
   const [token, setToken] = useState(localStorage.getItem("token"));
+  const [loading, setLoading] = useState(true);
 
+  // Fetch all user's shows
   const fetchShows = async () => {
+    if (!token) return;
     try {
+      setLoading(true);
       const res = await API.get("/shows");
       setShows(res.data);
     } catch (err) {
       console.error(err);
+      // If token expired or invalid, logout automatically
+      if (err.response?.status === 401) logout();
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (token) {
-      fetchShows();
-    }
-  }, [token]); // ✅ reacts to login/logout
+    fetchShows();
+  }, [token]); // refetch whenever login/logout
 
-  // 🔥 logout function
+  // Logout
   const logout = () => {
     localStorage.removeItem("token");
-    setShows([]); // 🔥 clear UI
     setToken(null);
+    setShows([]);
   };
 
-  // 🔒 protect app
+  // Protect app routes
   if (!token) {
     return <Login setToken={setToken} />;
   }
 
   return (
     <BrowserRouter>
-      <div className="p-4 flex justify-between items-center">
+      <div className="p-4 flex justify-between items-center bg-gray-900">
         <h1 className="text-white font-bold text-xl">TV Tracker</h1>
 
         <button
@@ -57,7 +63,11 @@ function App() {
           element={
             <>
               <SearchBar onAdd={fetchShows} />
-              <ShowList shows={shows} refresh={fetchShows} />
+              {loading ? (
+                <p className="text-gray-400 p-4">Loading shows...</p>
+              ) : (
+                <ShowList shows={shows} refresh={fetchShows} />
+              )}
             </>
           }
         />

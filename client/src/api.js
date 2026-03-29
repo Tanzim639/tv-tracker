@@ -4,15 +4,13 @@ const API = axios.create({
   baseURL: "https://tv-tracker-muie.onrender.com",
 });
 
-// 🔥 automatically attach token
-API.interceptors.request.use((req) => {
+// Add token automatically
+API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-
   if (token) {
-    req.headers.Authorization = token;
+    config.headers.Authorization = token;
   }
-
-  return req;
+  return config;
 });
 
 export default API;
