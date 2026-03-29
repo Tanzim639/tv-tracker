@@ -24,8 +24,9 @@ function Login({ setToken }) {
     try {
       await API.post("/signup", { username, password });
       alert("User created! Now login.");
-    } catch {
-      alert("Signup failed");
+    } catch (err) {
+      console.error(err); // 🔥 logs full error
+      alert(err.response?.data?.message || "Signup failed"); // 🔥 show actual backend message
     }
   };
 
