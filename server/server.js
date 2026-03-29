@@ -3,6 +3,8 @@ import axios from "axios";
 import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
@@ -18,19 +20,49 @@ mongoose
   .then(() => console.log("MongoDB Atlas connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-/* ---------------- SCHEMA ---------------- */
+/* ---------------- SCHEMAS ---------------- */
 
+// USER
+const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true },
+  password: String,
+});
+
+const User = mongoose.model("User", userSchema);
+
+// SHOW
 const showSchema = new mongoose.Schema({
-  tvmazeId: { type: Number, unique: true },
+  tvmazeId: Number, // ❌ removed unique
   name: String,
   poster: String,
   lastEpisode: String,
   lastAirDate: Date,
   nextEpisode: String,
   nextAirDate: Date,
+
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
 });
 
 const Show = mongoose.model("Show", showSchema);
+
+/* ---------------- AUTH MIDDLEWARE ---------------- */
+
+const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization;
+
+  if (!token) return res.status(401).json({ message: "No token" });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch {
+    res.status(401).json({ message: "Invalid token" });
+  }
+};
 
 /* ---------------- ROOT ---------------- */
 
@@ -38,9 +70,46 @@ app.get("/", (req, res) => {
   res.send("TV Tracker API running");
 });
 
-/* ---------------- SEARCH SHOW (GLOBAL DATABASE) ---------------- */
+/* ---------------- AUTH ROUTES ---------------- */
 
-app.get("/search/:name", async (req, res) => {
+// SIGNUP
+app.post("/signup", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await User.create({
+      username,
+      password: hashedPassword,
+    });
+
+    res.json({ message: "User created" });
+  } catch (err) {
+    res.status(400).json({ message: "User already exists" });
+  }
+});
+
+// LOGIN
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  const user = await User.findOne({ username });
+
+  if (!user) return res.status(400).json({ message: "User not found" });
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) return res.status(400).json({ message: "Wrong password" });
+
+  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+
+  res.json({ token });
+});
+
+/* ---------------- SEARCH SHOW ---------------- */
+
+app.get("/search/:name", authMiddleware, async (req, res) => {
   try {
     const response = await axios.get(
       `https://api.tvmaze.com/search/shows?q=${req.params.name}`,
@@ -52,7 +121,10 @@ app.get("/search/:name", async (req, res) => {
       results.slice(0, 8).map(async (item) => {
         const show = item.show;
 
-        const existing = await Show.findOne({ tvmazeId: show.id });
+        const existing = await Show.findOne({
+          tvmazeId: show.id,
+          userId: req.userId, // ✅ check per user
+        });
 
         return {
           tvmazeId: show.id,
@@ -70,9 +142,26 @@ app.get("/search/:name", async (req, res) => {
   }
 });
 
+app.get("/show/:id", authMiddleware, async (req, res) => {
+  try {
+    const show = await Show.findOne({
+      _id: req.params.id,
+      userId: req.userId,
+    });
+
+    if (!show) {
+      return res.status(404).json({ message: "Show not found" });
+    }
+
+    res.json(show);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching show" });
+  }
+});
+
 /* ---------------- ADD SHOW ---------------- */
 
-app.post("/add-show", async (req, res) => {
+app.post("/add-show", authMiddleware, async (req, res) => {
   const { name } = req.body;
 
   try {
@@ -82,8 +171,11 @@ app.post("/add-show", async (req, res) => {
 
     const show = showRes.data;
 
-    /* Prevent duplicates */
-    const existing = await Show.findOne({ tvmazeId: show.id });
+    // ✅ prevent duplicate per user
+    const existing = await Show.findOne({
+      tvmazeId: show.id,
+      userId: req.userId,
+    });
 
     if (existing) {
       return res.json({ message: "Show already added" });
@@ -110,6 +202,7 @@ app.post("/add-show", async (req, res) => {
       lastAirDate: prevEpisode?.airdate || null,
       nextEpisode: nextEpisode?.name || null,
       nextAirDate: nextEpisode?.airdate || null,
+      userId: req.userId, // 🔥 KEY LINE
     });
 
     await newShow.save();
@@ -121,10 +214,15 @@ app.post("/add-show", async (req, res) => {
   }
 });
 
-/* ---------------- GET TRACKED SHOWS ---------------- */
+/* ---------------- GET USER SHOWS ---------------- */
 
-app.get("/shows", async (req, res) => {
+app.get("/shows", authMiddleware, async (req, res) => {
   const shows = await Show.aggregate([
+    {
+      $match: {
+        userId: new mongoose.Types.ObjectId(req.userId),
+      },
+    },
     {
       $addFields: {
         hasNextEpisode: {
@@ -143,11 +241,11 @@ app.get("/shows", async (req, res) => {
   res.json(shows);
 });
 
-/* ---------------- REFRESH ALL SHOWS ---------------- */
+/* ---------------- REFRESH ALL ---------------- */
 
-app.get("/refresh-shows", async (req, res) => {
+app.get("/refresh-shows", authMiddleware, async (req, res) => {
   try {
-    const shows = await Show.find();
+    const shows = await Show.find({ userId: req.userId });
 
     for (const showDoc of shows) {
       const showRes = await axios.get(
@@ -170,7 +268,7 @@ app.get("/refresh-shows", async (req, res) => {
       }
 
       await Show.updateOne(
-        { tvmazeId: showDoc.tvmazeId },
+        { _id: showDoc._id },
         {
           lastEpisode: prevEpisode?.name || null,
           lastAirDate: prevEpisode?.airdate || null,
@@ -187,11 +285,14 @@ app.get("/refresh-shows", async (req, res) => {
   }
 });
 
-/* ---------------- REFRESH SINGLE SHOW ---------------- */
+/* ---------------- REFRESH ONE ---------------- */
 
-app.patch("/refresh-show/:id", async (req, res) => {
+app.patch("/refresh-show/:id", authMiddleware, async (req, res) => {
   try {
-    const showDoc = await Show.findById(req.params.id);
+    const showDoc = await Show.findOne({
+      _id: req.params.id,
+      userId: req.userId,
+    });
 
     if (!showDoc) {
       return res.status(404).json({ message: "Show not found" });
@@ -230,11 +331,14 @@ app.patch("/refresh-show/:id", async (req, res) => {
   }
 });
 
-/* ---------------- DELETE SHOW ---------------- */
+/* ---------------- DELETE ---------------- */
 
-app.delete("/show/:id", async (req, res) => {
+app.delete("/show/:id", authMiddleware, async (req, res) => {
   try {
-    const deletedShow = await Show.findByIdAndDelete(req.params.id);
+    const deletedShow = await Show.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.userId,
+    });
 
     if (!deletedShow) {
       return res.status(404).json({ message: "Show not found" });

@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import API from "../api";
 import axios from "axios";
 
 function ShowDetails() {
   const { id } = useParams();
   const [show, setShow] = useState(null);
+  const [backendData, setBackendData] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -12,18 +14,13 @@ function ShowDetails() {
     const fetchShow = async () => {
       try {
         setLoading(true);
-        // First, get the show from your backend
-        const res = await axios.get(
-          `https://tv-tracker-muie.onrender.com/shows`,
-        );
-        const showDoc = res.data.find((s) => s._id === id);
 
-        if (!showDoc) {
-          setShow(null);
-          return;
-        }
+        // ✅ get user-specific show (secure)
+        const res = await API.get(`/show/${id}`);
+        const showDoc = res.data;
+        setBackendData(showDoc);
 
-        // Then, fetch full show info from TVMaze
+        // ✅ get full info from TVMaze
         const tvmazeRes = await axios.get(
           `https://api.tvmaze.com/shows/${showDoc.tvmazeId}`,
         );
@@ -42,7 +39,6 @@ function ShowDetails() {
   if (loading) return <p className="text-center mt-10">Loading...</p>;
   if (!show) return <p className="text-center mt-10">Show not found</p>;
 
-  // Clean summary HTML
   const summary =
     show.summary?.replace(/<[^>]+>/g, "") || "No summary available";
 
@@ -74,11 +70,13 @@ function ShowDetails() {
             {show.genres.join(", ")}
           </p>
         )}
+
         {show.runtime && (
           <p>
             <span className="font-semibold">Runtime:</span> {show.runtime} min
           </p>
         )}
+
         {show.officialSite && (
           <p>
             <span className="font-semibold">Official Site:</span>{" "}
@@ -92,6 +90,7 @@ function ShowDetails() {
             </a>
           </p>
         )}
+
         {show.externals?.imdb && (
           <p>
             <span className="font-semibold">IMDb:</span>{" "}
@@ -107,39 +106,30 @@ function ShowDetails() {
         )}
       </div>
 
-      {/* Episodes info from your backend (last/next) */}
-      <div className="text-gray-300 space-y-2 border-t border-gray-700 pt-4">
-        <p>
-          <span className="font-semibold">Last Episode:</span>{" "}
-          {show.lastEpisode || "N/A"}
-        </p>
-        {show.lastAirDate && (
-          <p className="text-gray-400 text-sm">
-            Airdate: {show.lastAirDate.slice(0, 10)}
+      {/* 🔥 YOUR BACKEND DATA (user-specific) */}
+      {backendData && (
+        <div className="text-gray-300 space-y-2 border-t border-gray-700 pt-4">
+          <p>
+            <span className="font-semibold">Last Episode:</span>{" "}
+            {backendData.lastEpisode || "N/A"}
           </p>
-        )}
-        <p>
-          <span className="font-semibold">Next Episode:</span>{" "}
-          {show.nextEpisode || "None"}
-        </p>
-        {show.nextAirDate && (
-          <p className="text-gray-400 text-sm">
-            Airdate: {show.nextAirDate.slice(0, 10)}
-          </p>
-        )}
-      </div>
 
-      {/* Wikipedia link */}
-      {show.externals?.tvrage && (
-        <div className="mt-4">
-          <a
-            href={`https://en.wikipedia.org/wiki/${show.name.replace(/ /g, "_")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-400 hover:underline"
-          >
-            Wikipedia Page
-          </a>
+          {backendData.lastAirDate && (
+            <p className="text-gray-400 text-sm">
+              Airdate: {backendData.lastAirDate.slice(0, 10)}
+            </p>
+          )}
+
+          <p>
+            <span className="font-semibold">Next Episode:</span>{" "}
+            {backendData.nextEpisode || "None"}
+          </p>
+
+          {backendData.nextAirDate && (
+            <p className="text-gray-400 text-sm">
+              Airdate: {backendData.nextAirDate.slice(0, 10)}
+            </p>
+          )}
         </div>
       )}
     </div>

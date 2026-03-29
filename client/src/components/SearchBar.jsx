@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import API from "../api"; // 🔥 use custom API
 
 function SearchBar({ onAdd }) {
   const [query, setQuery] = useState("");
@@ -16,9 +16,7 @@ function SearchBar({ onAdd }) {
       try {
         setLoading(true);
 
-        const res = await axios.get(
-          `https://tv-tracker-muie.onrender.com/search/${query}`,
-        );
+        const res = await API.get(`/search/${query}`); // ✅ token auto-added
 
         setResults(res.data);
       } catch (err) {
@@ -32,16 +30,20 @@ function SearchBar({ onAdd }) {
   }, [query]);
 
   const addShow = async (tvmazeId, name) => {
-    await axios.post("https://tv-tracker-muie.onrender.com/add-show", { name });
+    try {
+      await API.post("/add-show", { name }); // ✅ token auto-added
 
-    // 🔥 update UI instantly
-    setResults((prev) =>
-      prev.map((show) =>
-        show.tvmazeId === tvmazeId ? { ...show, alreadyAdded: true } : show,
-      ),
-    );
+      // 🔥 update UI instantly
+      setResults((prev) =>
+        prev.map((show) =>
+          show.tvmazeId === tvmazeId ? { ...show, alreadyAdded: true } : show,
+        ),
+      );
 
-    onAdd();
+      onAdd();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (

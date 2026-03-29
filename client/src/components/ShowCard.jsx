@@ -1,15 +1,19 @@
 import { useState } from "react";
-import axios from "axios";
+import API from "../api"; // 🔥 use API instead of axios
 import { useNavigate } from "react-router-dom";
 
 function ShowCard({ show, refresh }) {
   const [showConfirm, setShowConfirm] = useState(false);
-  const navigate = useNavigate(); // ✅ FIXED (inside component)
+  const navigate = useNavigate();
 
   const deleteShow = async () => {
-    await axios.delete(`https://tv-tracker-muie.onrender.com/show/${show._id}`);
-    setShowConfirm(false);
-    refresh();
+    try {
+      await API.delete(`/show/${show._id}`); // ✅ token auto-added
+      setShowConfirm(false);
+      refresh();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -68,6 +72,7 @@ function ShowCard({ show, refresh }) {
         </div>
       </div>
 
+      {/* 🔥 Confirm Modal */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-900 p-6 rounded-xl shadow-xl w-80 text-center">
