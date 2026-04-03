@@ -51,13 +51,18 @@ const Show = mongoose.model("Show", showSchema);
 /* ---------------- AUTH MIDDLEWARE ---------------- */
 
 const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization;
+  let token = req.headers.authorization;
 
   if (!token) return res.status(401).json({ message: "No token" });
 
+  // 🔥 handle "Bearer xxx"
+  if (token.startsWith("Bearer ")) {
+    token = token.split(" ")[1];
+  }
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.id; // 🔥 use 'id' to match login
+    req.userId = decoded.id;
     next();
   } catch {
     res.status(401).json({ message: "Invalid token" });

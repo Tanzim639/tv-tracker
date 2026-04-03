@@ -13,15 +13,25 @@ function App() {
   // Keep your existing fetchShows function
   const fetchShows = async () => {
     if (!token) return;
+
     try {
+      console.log("FETCHING SHOWS...");
+
       setLoading(true);
+
       const res = await API.get("/shows");
+
+      console.log("SHOWS RESPONSE:", res.data);
+
       setShows(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error(err);
-      setShows([]);
-      if (err.response?.status === 401) logout();
+      console.error("FETCH ERROR:", err);
+
+      if (err.response?.status === 401) {
+        logout();
+      }
     } finally {
+      console.log("DONE LOADING");
       setLoading(false);
     }
   };
