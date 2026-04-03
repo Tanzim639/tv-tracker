@@ -318,30 +318,19 @@ app.post("/add-show", authMiddleware, async (req, res) => {
 /* ---------------- GET USER SHOWS ---------------- */
 
 app.get("/shows", authMiddleware, async (req, res) => {
-  const shows = await Show.aggregate([
-    {
-      $match: {
-        userId: req.userId,
-      },
-    },
-    {
-      $addFields: {
-        hasNextEpisode: {
-          $cond: [{ $ifNull: ["$nextAirDate", false] }, 1, 0],
-        },
-      },
-    },
-    {
-      $sort: {
-        hasNextEpisode: -1,
-        nextAirDate: 1,
-      },
-    },
-  ]);
+  try {
+    const shows = await Show.find({ userId: req.userId }).sort({
+      nextAirDate: 1,
+    });
 
-  console.log("USER ID:", req.userId);
-  console.log("SHOWS:", shows);
-  res.json(shows);
+    console.log("USER ID:", req.userId);
+    console.log("SHOWS:", shows);
+
+    res.json(shows);
+  } catch (err) {
+    console.error("FETCH SHOWS ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch shows" });
+  }
 });
 
 /* ---------------- REFRESH ALL ---------------- */
