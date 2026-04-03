@@ -1,27 +1,28 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import API from "./api";
+
 import SearchBar from "./components/SearchBar";
 import ShowList from "./components/ShowList";
 import ShowDetails from "./components/ShowDetails";
 import Login from "./pages/Login";
+
 function App() {
   const [shows, setShows] = useState([]);
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Keep your existing fetchShows function
   const fetchShows = async () => {
-    if (!token) return;
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) return;
 
     try {
       console.log("FETCHING SHOWS...");
-
       setLoading(true);
 
       const res = await API.get("/shows");
 
-      console.log("SHOWS RESPONSE:", res.data);
+      console.log("SHOWS:", res.data);
 
       setShows(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
@@ -31,12 +32,22 @@ function App() {
         logout();
       }
     } finally {
-      console.log("DONE LOADING");
       setLoading(false);
     }
   };
 
-  // Keep your existing logout function
+  // 🔥 FIXED: run ONCE on load
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+
+    if (storedToken) {
+      setToken(storedToken);
+      fetchShows();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);
@@ -44,13 +55,14 @@ function App() {
   };
 
   return (
-    <>
+    <BrowserRouter>
       {!token ? (
         <Login setToken={setToken} />
       ) : (
         <>
           <div className="p-4 flex justify-between items-center bg-gray-900">
             <h1 className="text-white font-bold text-xl">TV Tracker</h1>
+
             <button
               onClick={logout}
               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
@@ -65,6 +77,7 @@ function App() {
               element={
                 <>
                   <SearchBar onAdd={fetchShows} />
+
                   {loading ? (
                     <p className="text-gray-400 p-4">Loading shows...</p>
                   ) : shows.length === 0 ? (
@@ -77,12 +90,14 @@ function App() {
                 </>
               }
             />
+
             <Route path="/show/:id" element={<ShowDetails />} />
+
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </>
       )}
-    </>
+    </BrowserRouter>
   );
 }
 
