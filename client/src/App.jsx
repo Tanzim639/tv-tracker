@@ -27,7 +27,7 @@ function App() {
   };
 
   useEffect(() => {
-    fetchShows();
+    if (token) fetchShows();
   }, [token]);
 
   const logout = () => {
@@ -38,48 +38,52 @@ function App() {
 
   return (
     <BrowserRouter>
-      {" "}
-      {/* ✅ MOVED HERE */}
-      {!token ? (
-        <Login setToken={setToken} />
-      ) : (
-        <>
-          <div className="p-4 flex justify-between items-center bg-gray-900">
-            <h1 className="text-white font-bold text-xl">TV Tracker</h1>
+      <Routes>
+        {/* LOGIN ROUTE */}
+        <Route path="/login" element={<Login setToken={setToken} />} />
 
-            <button
-              onClick={logout}
-              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-            >
-              Logout
-            </button>
-          </div>
+        {/* PROTECTED ROUTES */}
+        <Route
+          path="/"
+          element={
+            token ? (
+              <>
+                <div className="p-4 flex justify-between items-center bg-gray-900">
+                  <h1 className="text-white font-bold text-xl">TV Tracker</h1>
 
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <>
-                  <SearchBar onAdd={fetchShows} />
-                  {loading ? (
-                    <p className="text-gray-400 p-4">Loading shows...</p>
-                  ) : shows.length === 0 ? (
-                    <p className="text-gray-400 p-4">
-                      No shows yet. Search and add one.
-                    </p>
-                  ) : (
-                    <ShowList shows={shows} refresh={fetchShows} />
-                  )}
-                </>
-              }
-            />
+                  <button
+                    onClick={logout}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                  >
+                    Logout
+                  </button>
+                </div>
 
-            <Route path="/show/:id" element={<ShowDetails />} />
+                <SearchBar onAdd={fetchShows} />
 
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </>
-      )}
+                {loading ? (
+                  <p className="text-gray-400 p-4">Loading shows...</p>
+                ) : shows.length === 0 ? (
+                  <p className="text-gray-400 p-4">
+                    No shows yet. Search and add one.
+                  </p>
+                ) : (
+                  <ShowList shows={shows} refresh={fetchShows} />
+                )}
+              </>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+
+        <Route
+          path="/show/:id"
+          element={token ? <ShowDetails /> : <Navigate to="/login" />}
+        />
+
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
     </BrowserRouter>
   );
 }
