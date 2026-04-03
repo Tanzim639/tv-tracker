@@ -5,12 +5,12 @@ import SearchBar from "./components/SearchBar";
 import ShowList from "./components/ShowList";
 import ShowDetails from "./components/ShowDetails";
 import Login from "./pages/Login";
-
 function App() {
   const [shows, setShows] = useState([]);
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [loading, setLoading] = useState(true);
 
+  // Keep your existing fetchShows function
   const fetchShows = async () => {
     if (!token) return;
     try {
@@ -26,10 +26,7 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (token) fetchShows();
-  }, [token]);
-
+  // Keep your existing logout function
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);
@@ -37,56 +34,46 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* LOGIN ROUTE */}
-        <Route path="/login" element={<Login setToken={setToken} />} />
+    <>
+      {!token ? (
+        <Login setToken={setToken} />
+      ) : (
+        <>
+          <div className="p-4 flex justify-between items-center bg-gray-900">
+            <h1 className="text-white font-bold text-xl">TV Tracker</h1>
+            <button
+              onClick={logout}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+            >
+              Logout
+            </button>
+          </div>
 
-        {/* PROTECTED ROUTES */}
-        <Route
-          path="/"
-          element={
-            token ? (
-              <>
-                <div className="p-4 flex justify-between items-center bg-gray-900">
-                  <h1 className="text-white font-bold text-xl">TV Tracker</h1>
-
-                  <button
-                    onClick={logout}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-                  >
-                    Logout
-                  </button>
-                </div>
-
-                <SearchBar onAdd={fetchShows} />
-
-                {loading ? (
-                  <p className="text-gray-400 p-4">Loading shows...</p>
-                ) : shows.length === 0 ? (
-                  <p className="text-gray-400 p-4">
-                    No shows yet. Search and add one.
-                  </p>
-                ) : (
-                  <ShowList shows={shows} refresh={fetchShows} />
-                )}
-              </>
-            ) : (
-              <Navigate to="/login" />
-            )
-          }
-        />
-
-        <Route
-          path="/show/:id"
-          element={token ? <ShowDetails /> : <Navigate to="/login" />}
-        />
-
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </BrowserRouter>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <>
+                  <SearchBar onAdd={fetchShows} />
+                  {loading ? (
+                    <p className="text-gray-400 p-4">Loading shows...</p>
+                  ) : shows.length === 0 ? (
+                    <p className="text-gray-400 p-4">
+                      No shows yet. Search and add one.
+                    </p>
+                  ) : (
+                    <ShowList shows={shows} refresh={fetchShows} />
+                  )}
+                </>
+              }
+            />
+            <Route path="/show/:id" element={<ShowDetails />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </>
+      )}
+    </>
   );
 }
-//qhi
 
 export default App;
