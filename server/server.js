@@ -91,50 +91,24 @@ app.post("/signup", async (req, res) => {
 });
 
 // LOGIN
-// app.post("/login", async (req, res) => {
-//   const { username, password } = req.body;
-
-//   try {
-//     const user = await User.findOne({ username });
-
-//     if (!user) return res.status(400).json({ message: "User not found" });
-
-//     const valid = await bcrypt.compare(password, user.password);
-//     if (!valid) return res.status(400).json({ message: "Invalid password" });
-
-//     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-//       expiresIn: "1d",
-//     });
-//     res.json({ token });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
-
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  console.log("Login attempt for:", username); // 🔥 debug
 
   try {
     const user = await User.findOne({ username });
-    console.log("User found:", user);
 
     if (!user) return res.status(400).json({ message: "User not found" });
 
     const valid = await bcrypt.compare(password, user.password);
-    console.log("Password valid:", valid);
     if (!valid) return res.status(400).json({ message: "Invalid password" });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
-    console.log("Token generated:", token);
-
     res.json({ token });
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
-    res.status(500).json({ message: "Server errorr" });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
