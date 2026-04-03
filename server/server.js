@@ -193,15 +193,74 @@ app.get("/show/:id", authMiddleware, async (req, res) => {
 });
 
 /* ---------------- ADD SHOW ---------------- */
+// app.post("/add-show", authMiddleware, async (req, res) => {
+//   const { tvmazeId } = req.body;
+
+//   try {
+//     const showRes = await axios.get(`https://api.tvmaze.com/shows/${tvmazeId}`);
+
+//     const show = showRes.data;
+
+//     // check duplicate
+//     const existing = await Show.findOne({
+//       tvmazeId: show.id,
+//       userId: req.userId,
+//     });
+
+//     if (existing) {
+//       return res.json({ message: "Show already added" });
+//     }
+
+//     let prevEpisode = null;
+//     let nextEpisode = null;
+
+//     if (show._links.previousepisode) {
+//       const prevRes = await axios.get(show._links.previousepisode.href);
+//       prevEpisode = prevRes.data;
+//     }
+
+//     if (show._links.nextepisode) {
+//       const nextRes = await axios.get(show._links.nextepisode.href);
+//       nextEpisode = nextRes.data;
+//     }
+
+//     const newShow = new Show({
+//       tvmazeId: show.id,
+//       name: show.name,
+//       poster: show.image?.medium || null,
+//       lastEpisode: prevEpisode?.name || null,
+//       lastAirDate: prevEpisode?.airdate || null,
+//       nextEpisode: nextEpisode?.name || null,
+//       nextAirDate: nextEpisode?.airdate || null,
+//       userId: req.userId,
+//     });
+
+//     await newShow.save();
+
+//     res.json(newShow);
+//   } catch (error) {
+//     console.error("ADD SHOW ERROR:", error.response?.data || error.message);
+
+//     res.status(500).json({ message: "Failed to add show" });
+//   }
+// });
+
 app.post("/add-show", authMiddleware, async (req, res) => {
   const { tvmazeId } = req.body;
+
+  console.log("ADD SHOW REQUEST:", tvmazeId);
+
+  if (!tvmazeId) {
+    return res.status(400).json({ message: "tvmazeId missing" });
+  }
 
   try {
     const showRes = await axios.get(`https://api.tvmaze.com/shows/${tvmazeId}`);
 
     const show = showRes.data;
 
-    // check duplicate
+    console.log("TVMAZE SHOW:", show.name);
+
     const existing = await Show.findOne({
       tvmazeId: show.id,
       userId: req.userId,
@@ -214,14 +273,22 @@ app.post("/add-show", authMiddleware, async (req, res) => {
     let prevEpisode = null;
     let nextEpisode = null;
 
-    if (show._links.previousepisode) {
-      const prevRes = await axios.get(show._links.previousepisode.href);
-      prevEpisode = prevRes.data;
+    try {
+      if (show._links?.previousepisode?.href) {
+        const prevRes = await axios.get(show._links.previousepisode.href);
+        prevEpisode = prevRes.data;
+      }
+    } catch (e) {
+      console.log("Prev episode fetch failed");
     }
 
-    if (show._links.nextepisode) {
-      const nextRes = await axios.get(show._links.nextepisode.href);
-      nextEpisode = nextRes.data;
+    try {
+      if (show._links?.nextepisode?.href) {
+        const nextRes = await axios.get(show._links.nextepisode.href);
+        nextEpisode = nextRes.data;
+      }
+    } catch (e) {
+      console.log("Next episode fetch failed");
     }
 
     const newShow = new Show({
@@ -239,9 +306,12 @@ app.post("/add-show", authMiddleware, async (req, res) => {
 
     res.json(newShow);
   } catch (error) {
-    console.error("ADD SHOW ERROR:", error.response?.data || error.message);
+    console.error("ADD SHOW ERROR FULL:", error);
 
-    res.status(500).json({ message: "Failed to add show" });
+    res.status(500).json({
+      message: "Failed to add show",
+      error: error.message,
+    });
   }
 });
 
