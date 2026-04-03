@@ -7,15 +7,27 @@ function SearchBar({ onAdd }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-
-    if (storedToken) {
-      setToken(storedToken);
-      fetchShows();
-    } else {
-      setLoading(false);
+    if (!query.trim()) {
+      setResults([]);
+      return;
     }
-  }, []);
+
+    const delay = setTimeout(async () => {
+      try {
+        setLoading(true);
+
+        const res = await API.get(`/search/${query}`); // ✅ token auto-added
+
+        setResults(res.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delay);
+  }, [query]);
 
   const addShow = async (tvmazeId, name) => {
     try {
