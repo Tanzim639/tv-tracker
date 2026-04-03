@@ -1,3 +1,11 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import API from "./api";
+import SearchBar from "./components/SearchBar";
+import ShowList from "./components/ShowList";
+import ShowDetails from "./components/ShowDetails";
+import Login from "./pages/Login";
+
 function App() {
   const [shows, setShows] = useState([]);
   const [token, setToken] = useState(localStorage.getItem("token"));
