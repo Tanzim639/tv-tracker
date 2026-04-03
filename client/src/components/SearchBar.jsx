@@ -31,7 +31,7 @@ function SearchBar({ onAdd }) {
 
   const addShow = async (tvmazeId, name) => {
     try {
-      await API.post("/add-show", { name }); // ✅ token auto-added
+      await API.post("/add-show", { tvmazeId }); // ✅ token auto-added
 
       // 🔥 update UI instantly
       setResults((prev) =>
@@ -43,6 +43,7 @@ function SearchBar({ onAdd }) {
       onAdd();
     } catch (err) {
       console.error(err);
+      alert(err.response?.data?.message || "Failed to add show");
     }
   };
 

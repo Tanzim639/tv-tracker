@@ -193,18 +193,15 @@ app.get("/show/:id", authMiddleware, async (req, res) => {
 });
 
 /* ---------------- ADD SHOW ---------------- */
-
 app.post("/add-show", authMiddleware, async (req, res) => {
-  const { name } = req.body;
+  const { tvmazeId } = req.body;
 
   try {
-    const showRes = await axios.get(
-      `https://api.tvmaze.com/singlesearch/shows?q=${name}`,
-    );
+    const showRes = await axios.get(`https://api.tvmaze.com/shows/${tvmazeId}`);
 
     const show = showRes.data;
 
-    // ✅ prevent duplicate per user
+    // check duplicate
     const existing = await Show.findOne({
       tvmazeId: show.id,
       userId: req.userId,
@@ -235,15 +232,16 @@ app.post("/add-show", authMiddleware, async (req, res) => {
       lastAirDate: prevEpisode?.airdate || null,
       nextEpisode: nextEpisode?.name || null,
       nextAirDate: nextEpisode?.airdate || null,
-      userId: req.userId, // 🔥 KEY LINE
+      userId: req.userId,
     });
 
     await newShow.save();
 
     res.json(newShow);
   } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: "Error adding show" });
+    console.error("ADD SHOW ERROR:", error.response?.data || error.message);
+
+    res.status(500).json({ message: "Failed to add show" });
   }
 });
 
