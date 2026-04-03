@@ -339,6 +339,8 @@ app.get("/shows", authMiddleware, async (req, res) => {
     },
   ]);
 
+  console.log("USER ID:", req.userId);
+  console.log("SHOWS:", shows);
   res.json(shows);
 });
 
