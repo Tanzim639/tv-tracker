@@ -76,3 +76,5 @@ function App() {
   );
 }
 //qhi
+
+export default App;
