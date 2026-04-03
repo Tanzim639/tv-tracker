@@ -321,7 +321,7 @@ app.get("/shows", authMiddleware, async (req, res) => {
   const shows = await Show.aggregate([
     {
       $match: {
-        userId: new mongoose.Types.ObjectId(req.userId),
+        userId: req.userId,
       },
     },
     {
